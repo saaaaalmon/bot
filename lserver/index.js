@@ -7,10 +7,10 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-// 1秒スタ連用
+// 1秒スタ連用：ユーザーごとの前回メッセージ時間
 const lastMessageTime = {};
 
-// 10秒10回用
+// 10秒10回用：ユーザーごとのメッセージ履歴（タイムスタンプ配列）
 const userMessageHistory = {};
 
 app.post("/webhook", async (req, res) => {
@@ -40,12 +40,12 @@ app.post("/webhook", async (req, res) => {
 
       // -------------------------
       // ② 1秒以内のスタ連検知
-      -------------------------
+      // -------------------------
       const isFastSpam =
         lastMessageTime[userId] && now - lastMessageTime[userId] < 1000;
 
       // -------------------------
-      // ③ 判定
+      // ③ 判定（返信はこの2つだけ）
       // -------------------------
       if (isFastSpam) {
         // スタ連検知
