@@ -7,14 +7,13 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-// ユーザーごとの前回メッセージ時間を記録する
-const lastMessageTime = {};
+// ユーザーごとのメッセージ履歴（タイムスタンプ配列）
+const userMessageHistory = {};
 
 app.post("/webhook", async (req, res) => {
   const events = req.body.events;
 
   for (const event of events) {
-    // ① メッセージイベントかどうか
     if (event.type === "message" && event.message.type === "text") {
       const userId = event.source.userId;
       const userMessage = event.message.text;
@@ -22,8 +21,21 @@ app.post("/webhook", async (req, res) => {
 
       console.log("ユーザーのメッセージ:", userMessage);
 
-      // ② スタ連検知（前回から1秒以内）
-      if (lastMessageTime[userId] && now - lastMessageTime[userId] < 1000) {
+      // 履歴がなければ作成
+      if (!userMessageHistory[userId]) {
+        userMessageHistory[userId] = [];
+      }
+
+      // 現在のメッセージを履歴に追加
+      userMessageHistory[userId].push(now);
+
+      // 10秒より古いメッセージを削除
+      userMessageHistory[userId] = userMessageHistory[userId].filter(
+        (t) => now - t <= 10000
+      );
+
+      // 10秒間に10回以上ならスタ連判定
+      if (userMessageHistory[userId].length >= 10) {
         await axios.post(
           "https://api.line.me/v2/bot/message/reply",
           {
@@ -31,7 +43,7 @@ app.post("/webhook", async (req, res) => {
             messages: [
               {
                 type: "text",
-                text: "スパム検知"
+                text: "⚠ 10秒間に10回の連打を検知したよ！"
               }
             ]
           },
@@ -43,7 +55,7 @@ app.post("/webhook", async (req, res) => {
           }
         );
       } else {
-        // ③ 通常メッセージへの返信
+        // 通常メッセージ返信
         await axios.post(
           "https://api.line.me/v2/bot/message/reply",
           {
@@ -51,7 +63,7 @@ app.post("/webhook", async (req, res) => {
             messages: [
               {
                 type: "text",
-                text: `スパム検知\n内容: ${userMessage}`
+                text: `メッセージを検知したよ！\n内容: ${userMessage}`
               }
             ]
           },
@@ -63,9 +75,6 @@ app.post("/webhook", async (req, res) => {
           }
         );
       }
-
-      // 最後のメッセージ時間を更新
-      lastMessageTime[userId] = now;
     }
   }
 
