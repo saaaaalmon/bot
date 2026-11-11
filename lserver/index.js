@@ -239,11 +239,15 @@ app.post(
     // LINEにはすぐに受信完了を返す
     res.sendStatus(200);
 
-    for (const event of body.events || []) {
-      handleEvent(event).catch(error => {
-        console.error("Message processing error:", error.message);
-      });
-    }
+for (const event of body.events || []) {
+  if (event.source?.type === "user" && event.source.userId) {
+    console.log("USER ID:", event.source.userId);
+  }
+
+  handleEvent(event).catch(error => {
+    console.error("Message processing error:", error.message);
+  });
+}
   }
 );
 
