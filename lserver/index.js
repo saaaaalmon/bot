@@ -151,13 +151,25 @@ async function handleEvent(event) {
     return;
   }
 
-  // 画像
-  if (message.type === "image") {
-    const original = await getContent(message.id);
-    const preview = await getPreview(message.id);
+ // 画像
+if (message.type === "image") {
+  const original = await getContent(message.id);
 
-    const originalUrl = saveMedia(original, "image/jpeg");
-    const previewUrl = saveMedia(preview, "image/jpeg");
+  const originalUrl = saveMedia(original, "image/jpeg");
+
+  await pushMessage([
+    {
+      type: "text",
+      text: header + "\n\n🖼 画像"
+    },
+    {
+      type: "image",
+      originalContentUrl: originalUrl,
+      previewImageUrl: originalUrl
+    }
+  ]);
+  return;
+}
 
     await pushMessage([
       {
